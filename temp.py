@@ -1,4 +1,3 @@
-# Birthday: 11/1/2024
 import os
 import time
 import uasyncio as asyncio

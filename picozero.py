@@ -95,20 +95,11 @@ Content-Type: text/html
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Log Output</title>
-    <script>
-        async function fetchLog() {
-            const response = await fetch('/log.txt');
-            const log = await response.text();
-            document.getElementById('log').innerText = log;
-        }
-        setInterval(fetchLog, 1000);  // Fetch log every second
-        window.onload = fetchLog;
-    </script>
+    <title>Trigger Watchdog</title>
 </head>
 <body>
-    <h1>Log Output</h1>
-    <pre id="log"></pre>
+    <h1>Status</h1>
+    <pre id="Status"></pre>
 </body>
 </html>
 """
@@ -141,6 +132,7 @@ async def run():
 
 # Start the asyncio event loop
 asyncio.run(run())
+
 
 
 

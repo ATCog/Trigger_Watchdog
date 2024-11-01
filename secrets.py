@@ -1,0 +1,2 @@
+SSID = "YourWiFi"
+PASSWORD = "YourPassword"

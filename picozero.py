@@ -4,6 +4,17 @@ import time
 import uasyncio as asyncio
 from machine import Pin
 from time import sleep, ticks_ms
+import socket
+
+import WiFi
+
+# Hyper Variables
+# Debounce time in milliseconds
+debounce_time = 50
+static_ip = '192.168.0.44'
+
+WiFi.connect_to_wifi(static_ip)
+
 
 # Function to write a new line to the log file
 def write_log(message):
@@ -31,9 +42,6 @@ def end_test():
 # Define the button pin
 photo_eye_pin = Pin(14, Pin.IN, Pin.PULL_DOWN)
 
-# Debounce time in milliseconds
-debounce_time = 50
-
 # Variables to store the last state and time
 last_state = photo_eye_pin.value()
 last_time = ticks_ms()
@@ -56,54 +64,84 @@ photo_eye_pin.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=log_state_ch
 
 start_test()
 
-# Web server to display the log file
 async def web_server():
-    import socket
     addr = socket.getaddrinfo('0.0.0.0', 80)[0][-1]
     s = socket.socket()
     s.bind(addr)
     s.listen(1)
     print('Listening on', addr)
 
-    while True:
-        cl, addr = s.accept()
-        print('Client connected from', addr)
-        request = cl.recv(1024)
-        request = str(request)
-        print('Request:', request)
+    try:
+        while True:
+            cl, addr = s.accept()
+            print('Client connected from', addr)
+            request = cl.recv(1024)
+            request = str(request)
+            print('Request:', request)
 
-        response = """HTTP/1.1 200 OK
+            if 'GET /log.txt' in request:
+                with open("log.txt", "r") as log_file:
+                    lines = log_file.readlines()
+                    last_20_lines = lines[-20:]  # Get the last 20 lines
+                    log_content = "".join(last_20_lines)
+                response = """HTTP/1.1 200 OK
+Content-Type: text/plain
+
+{}""".format(log_content)
+            else:
+                response = """HTTP/1.1 200 OK
 Content-Type: text/html
 
 <!DOCTYPE html>
 <html>
 <head>
     <title>Log Output</title>
+    <script>
+        async function fetchLog() {
+            const response = await fetch('/log.txt');
+            const log = await response.text();
+            document.getElementById('log').innerText = log;
+        }
+        setInterval(fetchLog, 1000);  // Fetch log every second
+        window.onload = fetchLog;
+    </script>
 </head>
 <body>
     <h1>Log Output</h1>
-    <pre>{}</pre>
+    <pre id="log"></pre>
 </body>
 </html>
-""".format(open("log.txt").read())
+"""
 
-        cl.send(response)
-        cl.close()
+            cl.send(response)
+            cl.close()
+    except Exception as e:
+        print(f"Exception in web server: {e}")
+    finally:
+        s.close()
+        print("Socket closed.")
+    return s
 
-# Main loop to keep the program running
 async def main():
+    server_socket = await web_server()  # Get the server socket
     try:
         while True:
             await asyncio.sleep(1)  # Sleep to reduce CPU usage
     except KeyboardInterrupt:
         print("Program stopped")
+        server_socket.close()  # Close the server socket
+        print("Server socket closed.")
     finally:
         end_test()
         print("end_test() called")
 
 # Run the web server and main loop
 async def run():
-    await asyncio.gather(web_server(), main())
+    await asyncio.gather(main())
 
 # Start the asyncio event loop
 asyncio.run(run())
+
+
+
+

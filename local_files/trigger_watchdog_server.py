@@ -4,13 +4,16 @@ import time
 import socket
 import threading
 
+triggers_to_view = 7
+
 # Function to read the last 10 lines of the log file and parse the data
 def read_log_file(file_path):
     times = []
     states = []
+    lines_to_read = -triggers_to_view * 2 - 1
     
     with open(file_path, 'r') as file:
-        lines = file.readlines()[-10:]  # Read only the last 10 lines
+        lines = file.readlines()[lines_to_read:]  # Read only the last 10 lines
         for line in lines:
             parts = line.strip().split('::')
             time_in_ms = int(parts[2])
@@ -35,7 +38,7 @@ def plot_graph(file_path):
         df = pd.DataFrame({'Time (ms)': times, 'State': states})
         
         # Plot the signal graph with linear time on the X axis and correct scaling for time intervals
-        ax.plot(df['Time (ms)'], df['State'], drawstyle='steps-post')
+        ax.plot(df['Time (ms)'], df['State'], drawstyle='steps-post', color='red', linewidth=4 )
         ax.set_xlabel('Time (ms)')
         ax.set_ylabel('Signal State')
         ax.set_title('Signal High/Low States Over Time')

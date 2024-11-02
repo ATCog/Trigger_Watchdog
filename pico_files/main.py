@@ -6,7 +6,7 @@ from machine import Pin
 from time import sleep, ticks_ms
 import socket
 
-import WiFi
+import WiFi 
 
 # Hyper Variables
 # Debounce time in milliseconds

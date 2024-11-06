@@ -1,4 +1,3 @@
-# Birthday: 11/1/2024
 import os
 import time
 import uasyncio as asyncio
@@ -11,11 +10,10 @@ import WiFi
 # Hyper Variables
 # Debounce time in milliseconds
 debounce_time = 50
-static_ip = '192.168.0.44'
-PC_IP_ADDRESS = '192.168.0.242'
+static_ip = '192.168.5.11'
+PC_IP_ADDRESS = '192.168.5.2'
 
 WiFi.connect_to_wifi(static_ip)
-
 
 # Function to write a new line to the log file
 def write_log(message):
@@ -60,7 +58,6 @@ def log_state_change(pin):
         if current_state != last_state:
             state = 'high' if current_state else 'low'
             print(f"PE {state} at {current_time} ms")
-            # write_log(f"{state}::{current_time}")
             string_to_send = f"{formatted_time}::{state}::{current_time}"
             send_data(string_to_send.encode())
             last_state = current_state
@@ -77,9 +74,6 @@ def send_data(data):
     s.send(data)
     s.close()
 
-# # Example usage
-# send_data(b'Hello from Pico W')
-
 start_test()
 
 async def web_server():
@@ -91,6 +85,7 @@ async def web_server():
 
     try:
         while True:
+            print('Waiting for a connection...')
             cl, addr = s.accept()
             print('Client connected from', addr)
             request = cl.recv(1024)
@@ -150,9 +145,3 @@ async def run():
 
 # Start the asyncio event loop
 asyncio.run(run())
-
-
-
-
-
-

@@ -10,19 +10,28 @@ import WiFi
 # Hyper Variables
 # Debounce time in milliseconds
 debounce_time = 50
-static_ip = '192.168.5.11'
-PC_IP_ADDRESS = '192.168.5.2'
+# production Values - with toolbox
+# static_ip = '192.168.5.11'
+# PC_IP_ADDRESS = '192.168.5.2'
+
+# test Values - with PC
+static_ip = '192.168.0.95'
+PC_IP_ADDRESS = '192.168.0.30'
 
 WiFi.connect_to_wifi(static_ip)
 
 # Function to write a new line to the log file
 def write_log(message):
-    timestamp = time.localtime()
-    formatted_time = "{:04}-{:02}-{:02} {:02}:{:02}:{:02}".format(
-        timestamp[0], timestamp[1], timestamp[2], timestamp[3], timestamp[4], timestamp[5]
-    )
-    with open("log.txt", "a") as log_file:
-        log_file.write(f"{formatted_time}::{message}" + "\n")
+    try:
+        timestamp = time.localtime()
+        formatted_time = "{:04}-{:02}-{:02} {:02}:{:02}:{:02}".format(
+            timestamp[0], timestamp[1], timestamp[2], timestamp[3], timestamp[4], timestamp[5]
+        )
+        with open("log.txt", "a") as log_file:
+            log_file.write(f"{formatted_time}::{message}\n")
+    except Exception as e:
+        print(f"Error writing to log file: {e}")
+
 
 def start_test():
     write_log("")
@@ -68,11 +77,20 @@ photo_eye_pin.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=log_state_ch
 
 # Function to send data
 def send_data(data):
-    addr = (PC_IP_ADDRESS, 6781)  # Replace with your PC's IP address and port
-    s = socket.socket()
-    s.connect(addr)
-    s.send(data)
-    s.close()
+    addr = (PC_IP_ADDRESS, 6781)
+    try:
+        print("Attempting to send data...")
+        s = socket.socket()
+        s.connect(addr)
+        s.send(data)
+        print(f"Data sent: {data}")
+    except Exception as e:
+        print(f"Error sending data: {e}")
+    finally:
+        if s:
+            s.close()
+
+
 
 start_test()
 
@@ -85,24 +103,16 @@ async def web_server():
 
     try:
         while True:
-            print('Waiting for a connection...')
             cl, addr = s.accept()
-            print('Client connected from', addr)
-            request = cl.recv(1024)
-            request = str(request)
-            print('Request:', request)
-
-            if 'GET /log.txt' in request:
-                with open("log.txt", "r") as log_file:
-                    lines = log_file.readlines()
-                    last_20_lines = lines[-20:]  # Get the last 20 lines
-                    log_content = "".join(last_20_lines)
-                response = """HTTP/1.1 200 OK
-Content-Type: text/plain
-
-{}""".format(log_content)
-            else:
-                response = """HTTP/1.1 200 OK
+            try:
+                request = cl.recv(1024)
+                if 'GET /log.txt' in request.decode():
+                    with open("log.txt", "r") as log_file:
+                        lines = log_file.readlines()
+                        log_content = "".join(lines[-20:])
+                    response = f"HTTP/1.1 200 OK\nContent-Type: text/plain\n\n{log_content}"
+                else:
+                    response = """HTTP/1.1 200 OK
 Content-Type: text/html
 
 <!DOCTYPE html>
@@ -116,15 +126,17 @@ Content-Type: text/html
 </body>
 </html>
 """
-
-            cl.send(response)
-            cl.close()
+                cl.send(response.encode())
+            except Exception as e:
+                print(f"Error handling client request: {e}")
+            finally:
+                cl.close()
     except Exception as e:
         print(f"Exception in web server: {e}")
     finally:
         s.close()
         print("Socket closed.")
-    return s
+
 
 async def main():
     server_socket = await web_server()  # Get the server socket

@@ -48,7 +48,7 @@ def end_test():
     write_log("")
 
 # Define the button pin
-photo_eye_pin = Pin(14, Pin.IN, Pin.PULL_DOWN)
+photo_eye_pin = Pin(14, Pin.IN)
 
 # Variables to store the last state and time
 last_state = photo_eye_pin.value()

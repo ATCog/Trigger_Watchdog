@@ -4,12 +4,14 @@ import uasyncio as asyncio
 from machine import Pin
 from time import sleep, ticks_ms
 import socket
+import machine
 
 import WiFi 
 
+machine.freq(270000000)
 # Hyper Variables
 # Debounce time in milliseconds
-debounce_time = 50
+debounce_time = 0
 # production Values - with toolbox
 # static_ip = '192.168.5.11'
 # PC_IP_ADDRESS = '192.168.5.2'
@@ -157,3 +159,4 @@ async def run():
 
 # Start the asyncio event loop
 asyncio.run(run())
+

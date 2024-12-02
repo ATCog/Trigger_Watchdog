@@ -33,7 +33,10 @@ def read_log_file(file_path):
                     continue  # Skip malformed lines
         return times, states
     except FileNotFoundError:
-        print("Log file not found.")
+        print("Log file not found. Creating a new log file.")
+        with open('logfile.txt', 'w') as file:
+            # Initialize the file with any default content if needed
+            pass
         return [], []
 
 

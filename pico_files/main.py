@@ -3,23 +3,26 @@ import time
 import uasyncio as asyncio
 from machine import Pin
 from time import sleep, ticks_ms
-import socket
 import machine
+import network
+from umqtt.simple import MQTTClient
 
 import WiFi 
 
 machine.freq(270000000)
+
 # Hyper Variables
 # Debounce time in milliseconds
 debounce_time = 0
-# production Values - with toolbox
-# static_ip = '192.168.5.11'
-# PC_IP_ADDRESS = '192.168.5.2'
 
-# test Values - with PC
+# MQTT Configuration
+MQTT_BROKER = '192.168.0.30'  # Replace with the IP address of your PC
+MQTT_PORT = 1883
+MQTT_TOPIC = 'trigger/data'
+MQTT_CLIENT_ID = 'pi_pico_w'
+
+# WiFi Configuration
 static_ip = '192.168.0.95'
-PC_IP_ADDRESS = '192.168.0.30'
-
 WiFi.connect_to_wifi(static_ip)
 
 # Function to write a new line to the log file
@@ -33,7 +36,6 @@ def write_log(message):
             log_file.write(f"{formatted_time}::{message}\n")
     except Exception as e:
         print(f"Error writing to log file: {e}")
-
 
 def start_test():
     write_log("")
@@ -77,86 +79,34 @@ def log_state_change(pin):
 # Attach an interrupt to the button pin
 photo_eye_pin.irq(trigger=Pin.IRQ_RISING | Pin.IRQ_FALLING, handler=log_state_change)
 
-# Function to send data
+# Function to send data to MQTT server
 def send_data(data):
-    addr = (PC_IP_ADDRESS, 6781)
     try:
-        print("Attempting to send data...")
-        s = socket.socket()
-        s.connect(addr)
-        s.send(data)
-        print(f"Data sent: {data}")
+        print("Attempting to send data to MQTT...")
+        client.publish(MQTT_TOPIC, data)
+        print(f"Data sent to MQTT: {data}")
     except Exception as e:
-        print(f"Error sending data: {e}")
-    finally:
-        if s:
-            s.close()
+        print(f"Error sending data to MQTT: {e}")
 
-
+# Connect to MQTT server
+client = MQTTClient(MQTT_CLIENT_ID, MQTT_BROKER, port=MQTT_PORT)
+client.connect()
 
 start_test()
 
-async def web_server():
-    addr = socket.getaddrinfo('0.0.0.0', 80)[0][-1]
-    s = socket.socket()
-    s.bind(addr)
-    s.listen(1)
-    print('Listening on', addr)
-
-    try:
-        while True:
-            cl, addr = s.accept()
-            try:
-                request = cl.recv(1024)
-                if 'GET /log.txt' in request.decode():
-                    with open("log.txt", "r") as log_file:
-                        lines = log_file.readlines()
-                        log_content = "".join(lines[-20:])
-                    response = f"HTTP/1.1 200 OK\nContent-Type: text/plain\n\n{log_content}"
-                else:
-                    response = """HTTP/1.1 200 OK
-Content-Type: text/html
-
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Trigger Watchdog</title>
-</head>
-<body>
-    <h1>Status</h1>
-    <pre id="Status"></pre>
-</body>
-</html>
-"""
-                cl.send(response.encode())
-            except Exception as e:
-                print(f"Error handling client request: {e}")
-            finally:
-                cl.close()
-    except Exception as e:
-        print(f"Exception in web server: {e}")
-    finally:
-        s.close()
-        print("Socket closed.")
-
-
 async def main():
-    server_socket = await web_server()  # Get the server socket
     try:
         while True:
             await asyncio.sleep(1)  # Sleep to reduce CPU usage
     except KeyboardInterrupt:
         print("Program stopped")
-        server_socket.close()  # Close the server socket
-        print("Server socket closed.")
     finally:
         end_test()
         print("end_test() called")
 
-# Run the web server and main loop
+# Run the main loop
 async def run():
     await asyncio.gather(main())
 
 # Start the asyncio event loop
 asyncio.run(run())
-

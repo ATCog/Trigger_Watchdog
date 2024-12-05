@@ -17,7 +17,6 @@ debounce_time = 0
 
 # MQTT Configuration
 MQTT_BROKER = '192.168.0.30'  # Replace with the IP address of your PC
-MQTT_PORT = 1883
 MQTT_TOPIC = 'trigger/data'
 MQTT_CLIENT_ID = 'pi_pico_w'
 
@@ -26,30 +25,30 @@ static_ip = '192.168.0.95'
 WiFi.connect_to_wifi(static_ip)
 
 # Function to write a new line to the log file
-def write_log(message):
-    try:
-        timestamp = time.localtime()
-        formatted_time = "{:04}-{:02}-{:02} {:02}:{:02}:{:02}".format(
-            timestamp[0], timestamp[1], timestamp[2], timestamp[3], timestamp[4], timestamp[5]
-        )
-        with open("log.txt", "a") as log_file:
-            log_file.write(f"{formatted_time}::{message}\n")
-    except Exception as e:
-        print(f"Error writing to log file: {e}")
+# def write_log(message):
+#     try:
+#         timestamp = time.localtime()
+#         formatted_time = "{:04}-{:02}-{:02} {:02}:{:02}:{:02}".format(
+#             timestamp[0], timestamp[1], timestamp[2], timestamp[3], timestamp[4], timestamp[5]
+#         )
+#         with open("log.txt", "a") as log_file:
+#             log_file.write(f"{formatted_time}::{message}\n")
+#     except Exception as e:
+#         print(f"Error writing to log file: {e}")
 
-def start_test():
-    write_log("")
-    write_log("----------------------------------------")
-    write_log("Test Start")
-    write_log("----------------------------------------")
-    write_log("")
+# def start_test():
+#     write_log("")
+#     write_log("----------------------------------------")
+#     write_log("Test Start")
+#     write_log("----------------------------------------")
+#     write_log("")
     
-def end_test():
-    write_log("")
-    write_log("----------------------------------------")
-    write_log("Test End")
-    write_log("----------------------------------------")
-    write_log("")
+# def end_test():
+#     write_log("")
+#     write_log("----------------------------------------")
+#     write_log("Test End")
+#     write_log("----------------------------------------")
+#     write_log("")
 
 # Define the button pin
 photo_eye_pin = Pin(14, Pin.IN)
@@ -72,7 +71,8 @@ def log_state_change(pin):
             state = 'high' if current_state else 'low'
             print(f"PE {state} at {current_time} ms")
             string_to_send = f"{formatted_time}::{state}::{current_time}"
-            send_data(string_to_send.encode())
+            # send_data(string_to_send.encode())
+            send_mqtt(string_to_send.encode())
             last_state = current_state
             last_time = current_time
 
@@ -88,11 +88,21 @@ def send_data(data):
     except Exception as e:
         print(f"Error sending data to MQTT: {e}")
 
-# Connect to MQTT server
-client = MQTTClient(MQTT_CLIENT_ID, MQTT_BROKER, port=MQTT_PORT)
-client.connect()
+def send_mqtt(data):
+    # Connect to MQTT broker
+    client = MQTTClient(MQTT_CLIENT_ID, MQTT_BROKER)
+    client.connect()
+    # Publish message
+    client.publish(MQTT_TOPIC, data)
+    print(f'Message "{data}" sent to topic "{MQTT_TOPIC}"')
 
-start_test()
+
+
+# # Connect to MQTT server
+# client = MQTTClient(MQTT_CLIENT_ID, MQTT_BROKER, port=MQTT_PORT)
+# client.connect()
+
+# start_test()
 
 async def main():
     try:
@@ -101,7 +111,7 @@ async def main():
     except KeyboardInterrupt:
         print("Program stopped")
     finally:
-        end_test()
+        # end_test()
         print("end_test() called")
 
 # Run the main loop

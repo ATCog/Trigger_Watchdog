@@ -1,42 +1,34 @@
 import paho.mqtt.client as mqtt
-import pandas as pd
+import time
 
-# Initialize an empty DataFrame to store the received data
-df = pd.DataFrame(columns=['timestamp', 'topic', 'message'])
+# Define the MQTT broker and topic
+broker = "192.168.0.30"
+topic = "test/topic"
+log_file = "mqtt_log.txt"
 
-# Callback when a message is received
-def on_message(client, userdata, msg):
-    global df
-    timestamp = pd.Timestamp.now()
-    topic = msg.topic
-    message = msg.payload.decode()
-    print(f"Received message: {message} on topic: {topic} at {timestamp}")
-    
-    # Append the received data to the DataFrame
-    df = df.append({'timestamp': timestamp, 'topic': topic, 'message': message}, ignore_index=True)
+# Callback function when a message is received
+def on_message(client, userdata, message):
+    msg = message.payload.decode()
+    timestamp = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
+    log_entry = f"{timestamp} - {message.topic}: {msg}\n"
+    print(log_entry)
+    with open(log_file, 'a') as file:
+        file.write(log_entry)
 
-# Create an MQTT client instance
+# Set up the MQTT client
 client = mqtt.Client()
-
-# Assign the on_message callback function
 client.on_message = on_message
 
-# Connect to the broker
-client.connect("localhost", 1883, 60)
-
-# Subscribe to a topic
-client.subscribe("trigger/data")
+# Connect to the broker and subscribe to the topic
+client.connect(broker)
+client.subscribe(topic)
 
 # Start the MQTT client loop
 client.loop_start()
 
-# Keep the script running
 try:
     while True:
-        pass
+        time.sleep(1)
 except KeyboardInterrupt:
-    print("Exiting...")
     client.loop_stop()
     client.disconnect()
-    print("Final DataFrame:")
-    print(df)

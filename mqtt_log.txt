@@ -1,0 +1,3 @@
+2024-12-05 14:01:07 - test/topic: Test message 1
+2024-12-05 14:03:29 - test/topic: Test message 1
+2024-12-05 14:04:49 - test/topic: Hello from Pico!
